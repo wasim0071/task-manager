@@ -1,5 +1,6 @@
 import { reactive, ref, watch } from 'vue';
 import client from '../api/client';
+import { useToast } from './useToast';
 
 function readError(error) {
     const data = error.response?.data;
@@ -25,7 +26,6 @@ export function useTasks() {
     const listError = ref('');
     const formError = ref('');
     const fieldErrors = ref({});
-    const toast = ref('');
     const filters = reactive({
         search: '',
         status: '',
@@ -35,18 +35,8 @@ export function useTasks() {
         page: 1,
     });
 
-    let toastTimer = 0;
     let requestId = 0;
-
-    function notify(message) {
-        toast.value = message;
-        window.clearTimeout(toastTimer);
-        toastTimer = window.setTimeout(() => {
-            if (toast.value === message) {
-                toast.value = '';
-            }
-        }, 2800);
-    }
+    const { push } = useToast();
 
     function clearFormFeedback() {
         formError.value = '';
@@ -105,6 +95,7 @@ export function useTasks() {
             }
 
             listError.value = readError(error).message || 'The task list could not be loaded.';
+            push(listError.value, 'error');
         } finally {
             if (id === requestId) {
                 loading.value = false;
@@ -124,20 +115,23 @@ export function useTasks() {
 
         try {
             await request();
-            notify(success);
+            push(success);
             await fetchTasks();
 
             return true;
         } catch (error) {
             const parsed = readError(error);
+            const summary = parsed.message
+                || (Object.keys(parsed.fields).length ? 'Check the highlighted fields and try again.' : 'The task could not be saved.');
 
             if (target === 'form') {
                 fieldErrors.value = parsed.fields;
-                formError.value = parsed.message
-                    || (Object.keys(parsed.fields).length ? 'Check the highlighted fields and try again.' : 'The task could not be saved.');
+                formError.value = summary;
             } else {
                 listError.value = parsed.message || 'The task could not be updated.';
             }
+
+            push(target === 'form' ? summary : listError.value, 'error');
 
             return false;
         } finally {
@@ -190,7 +184,6 @@ export function useTasks() {
         listError,
         formError,
         fieldErrors,
-        toast,
         filters,
         fetchTasks,
         createTask,

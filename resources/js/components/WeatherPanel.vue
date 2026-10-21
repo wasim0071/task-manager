@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import client from '../api/client';
 import { weekday } from '../utils/dates';
+import { useToast } from '../composables/useToast';
 import { limits } from '../utils/limits';
 
 function storedCity() {
@@ -13,6 +14,7 @@ function storedCity() {
 }
 
 const draft = ref(storedCity().slice(0, limits.city));
+const { push } = useToast();
 
 watch(draft, (value) => {
     if (value.length > limits.city) {
@@ -48,12 +50,16 @@ function range(day) {
     return `${Math.round(day.high_c)}° / ${Math.round(day.low_c)}°`;
 }
 
-async function load() {
+async function load(announce = false) {
     const city = draft.value.trim().slice(0, limits.city);
     draft.value = city;
 
     if (!city) {
         error.value = 'Enter a city name.';
+
+        if (announce) {
+            push(error.value, 'error');
+        }
 
         return;
     }
@@ -71,14 +77,19 @@ async function load() {
         } catch {
             // Storage can be blocked. The forecast still renders.
         }
+
+        if (announce) {
+            push(`Weather updated for ${draft.value}.`);
+        }
     } catch (requestError) {
         error.value = requestError.response?.data?.message || 'Weather is unavailable right now.';
+        push(error.value, 'error');
     } finally {
         loading.value = false;
     }
 }
 
-onMounted(load);
+onMounted(() => load(false));
 </script>
 
 <template>
@@ -88,7 +99,7 @@ onMounted(load);
             <p>Open-Meteo, cached for 10 minutes</p>
         </div>
 
-        <form class="stack" @submit.prevent="load">
+        <form class="stack" @submit.prevent="load(true)">
             <div class="field">
                 <div class="field-label">
                     <label for="weather-city">City</label>

@@ -1,5 +1,6 @@
 <script setup>
 import { reactive, watch } from 'vue';
+import { useToast } from '../composables/useToast';
 import { limits } from '../utils/limits';
 
 const props = defineProps({
@@ -10,6 +11,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['submit', 'cancel']);
+const { push } = useToast();
 
 const form = reactive({
     title: props.task?.title ?? '',
@@ -69,6 +71,8 @@ function submit() {
     }
 
     if (localErrors.title || localErrors.description || localErrors.due_date) {
+        push(localErrors.title || localErrors.description || localErrors.due_date, 'error');
+
         return;
     }
 

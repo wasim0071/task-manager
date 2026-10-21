@@ -4,6 +4,7 @@ import TaskForm from './components/TaskForm.vue';
 import TaskList from './components/TaskList.vue';
 import WeatherPanel from './components/WeatherPanel.vue';
 import { useTasks } from './composables/useTasks';
+import { useToast } from './composables/useToast';
 import { limits } from './utils/limits';
 
 const {
@@ -17,7 +18,6 @@ const {
     listError,
     formError,
     fieldErrors,
-    toast,
     filters,
     fetchTasks,
     createTask,
@@ -26,6 +26,14 @@ const {
     removeTask,
     clearFormFeedback,
 } = useTasks();
+
+const { toasts, push } = useToast();
+
+function shortTitle(title) {
+    const text = String(title || '').trim();
+
+    return text.length > 42 ? `${text.slice(0, 42)}…` : text;
+}
 
 const editing = ref(null);
 const formKey = ref(0);
@@ -90,12 +98,14 @@ function onEdit(task) {
     requestAnimationFrame(() => {
         document.getElementById('task-form')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     });
+    push(`Editing ${shortTitle(task.title)}.`);
 }
 
 function cancelEdit() {
     editing.value = null;
     formKey.value += 1;
     clearFormFeedback();
+    push('Edit cancelled.');
 }
 </script>
 
@@ -220,6 +230,14 @@ function cancelEdit() {
             <p>Laravel · Vue 3 · MySQL · Open-Meteo</p>
         </footer>
 
-        <p v-if="toast" class="toast" role="status">{{ toast }}</p>
+        <div class="toaster" aria-live="polite">
+            <p
+                v-for="item in toasts"
+                :key="item.id"
+                class="toast"
+                :class="item.tone === 'error' ? 'toast-error' : 'toast-success'"
+                role="status"
+            >{{ item.message }}</p>
+        </div>
     </div>
 </template>

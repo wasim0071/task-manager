@@ -4,6 +4,7 @@ import TaskForm from './components/TaskForm.vue';
 import TaskList from './components/TaskList.vue';
 import WeatherPanel from './components/WeatherPanel.vue';
 import { useTasks } from './composables/useTasks';
+import { limits } from './utils/limits';
 
 const {
     tasks,
@@ -44,9 +45,15 @@ const sortValue = computed({
 });
 
 watch(searchInput, (value) => {
+    if (value.length > limits.search) {
+        searchInput.value = value.slice(0, limits.search);
+
+        return;
+    }
+
     window.clearTimeout(searchTimer);
     searchTimer = window.setTimeout(() => {
-        filters.search = value;
+        filters.search = value.trim().slice(0, limits.search);
         filters.page = 1;
     }, 250);
 });
@@ -132,7 +139,16 @@ function cancelEdit() {
                 <div class="toolbar">
                     <div class="field search-field">
                         <label class="sr-only" for="task-search">Search tasks</label>
-                        <input id="task-search" v-model="searchInput" type="search" placeholder="Search title or description" autocomplete="off">
+                        <input
+                            id="task-search"
+                            v-model="searchInput"
+                            type="search"
+                            :maxlength="limits.search"
+                            placeholder="Search title or description"
+                            autocomplete="off"
+                            :aria-describedby="'task-search-limit'"
+                        >
+                        <span id="task-search-limit" class="sr-only">{{ limits.search }} characters at most</span>
                     </div>
 
                     <div class="segment" role="group" aria-label="Filter by status">

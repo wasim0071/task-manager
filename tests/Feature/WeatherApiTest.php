@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Support\InputLimits;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -88,6 +89,10 @@ class WeatherApiTest extends TestCase
             ->assertJsonValidationErrors('city');
 
         $this->getJson('/api/v1/integrations/weather?city='.urlencode('<script>'))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('city');
+
+        $this->getJson('/api/v1/integrations/weather?city='.urlencode(str_repeat('L', InputLimits::CITY + 1)))
             ->assertUnprocessable()
             ->assertJsonValidationErrors('city');
     }

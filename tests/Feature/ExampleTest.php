@@ -16,4 +16,19 @@ class ExampleTest extends TestCase
             ->assertHeader('X-Content-Type-Options', 'nosniff')
             ->assertHeader('X-Frame-Options', 'SAMEORIGIN');
     }
+
+    public function test_unknown_pages_offer_a_way_home(): void
+    {
+        $this->withoutVite();
+
+        $this->get('/this-page-does-not-exist')
+            ->assertNotFound()
+            ->assertSee('Page not found', false)
+            ->assertSee('Go to home', false)
+            ->assertSee('href="'.url('/').'"', false);
+
+        $this->getJson('/api/v1/not-a-real-route')
+            ->assertNotFound()
+            ->assertHeader('content-type', 'application/json');
+    }
 }

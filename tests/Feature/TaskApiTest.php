@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Models\Task;
+use App\Support\InputLimits;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -103,6 +104,46 @@ class TaskApiTest extends TestCase
             'priority' => 'urgent',
         ])->assertUnprocessable()
             ->assertJsonValidationErrors(['title', 'priority']);
+    }
+
+    public function test_it_rejects_oversized_task_input(): void
+    {
+        $this->postJson('/api/v1/tasks', [
+            'title' => '   ',
+            'priority' => 'low',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors('title');
+
+        $this->postJson('/api/v1/tasks', [
+            'title' => str_repeat('a', InputLimits::TITLE + 1),
+            'description' => str_repeat('b', InputLimits::DESCRIPTION + 1),
+            'priority' => 'low',
+            'due_date' => '1800-01-01',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['title', 'description', 'due_date']);
+
+        $task = Task::factory()->create();
+
+        $this->putJson("/api/v1/tasks/{$task->id}", [
+            'title' => str_repeat('c', InputLimits::TITLE + 1),
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors('title');
+
+        $this->getJson('/api/v1/tasks?search='.urlencode(str_repeat('d', InputLimits::SEARCH + 1)))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('search');
+
+        $this->getJson('/api/v1/tasks?page=1001&per_page=500')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['page', 'per_page']);
+
+        $this->postJson('/api/v1/tasks', [
+            'title' => str_repeat('e', InputLimits::TITLE),
+            'description' => str_repeat('f', InputLimits::DESCRIPTION),
+            'priority' => 'medium',
+            'due_date' => InputLimits::DUE_MAX,
+        ])->assertCreated()
+            ->assertJsonPath('data.due_date', InputLimits::DUE_MAX);
     }
 
     public function test_it_updates_a_task_without_clearing_completion(): void

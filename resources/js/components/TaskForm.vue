@@ -1,5 +1,6 @@
 <script setup>
-import { reactive } from 'vue';
+import { reactive, watch } from 'vue';
+import { limits } from '../utils/limits';
 
 const props = defineProps({
     task: { type: Object, default: null },
@@ -17,16 +18,63 @@ const form = reactive({
     due_date: props.task?.due_date ?? '',
 });
 
+const localErrors = reactive({
+    title: '',
+    description: '',
+    due_date: '',
+});
+
+watch(() => form.title, (value) => {
+    if (value.length > limits.title) {
+        form.title = value.slice(0, limits.title);
+    }
+});
+
+watch(() => form.description, (value) => {
+    if (value.length > limits.description) {
+        form.description = value.slice(0, limits.description);
+    }
+});
+
 function fieldError(name) {
+    if (localErrors[name]) {
+        return localErrors[name];
+    }
+
     const value = props.errors?.[name];
 
     return Array.isArray(value) ? value[0] : '';
 }
 
 function submit() {
+    const title = form.title.trim();
+    const description = form.description.trim();
+
+    localErrors.title = '';
+    localErrors.description = '';
+    localErrors.due_date = '';
+
+    if (!title) {
+        localErrors.title = 'Give the task a title.';
+    } else if (title.length > limits.title) {
+        localErrors.title = `Titles must be ${limits.title} characters or fewer.`;
+    }
+
+    if (description.length > limits.description) {
+        localErrors.description = `Descriptions must be ${limits.description} characters or fewer.`;
+    }
+
+    if (form.due_date && (form.due_date < limits.dueMin || form.due_date > limits.dueMax)) {
+        localErrors.due_date = 'Due dates must fall between 1990 and 2100.';
+    }
+
+    if (localErrors.title || localErrors.description || localErrors.due_date) {
+        return;
+    }
+
     emit('submit', {
-        title: form.title.trim(),
-        description: form.description.trim(),
+        title,
+        description,
         priority: form.priority,
         due_date: form.due_date || null,
     });
@@ -46,13 +94,13 @@ function submit() {
             <div class="field">
                 <div class="field-label">
                     <label for="task-title">Title</label>
-                    <span>{{ form.title.length }}/160</span>
+                    <span>{{ form.title.length }}/{{ limits.title }}</span>
                 </div>
                 <input
                     id="task-title"
                     v-model="form.title"
                     type="text"
-                    maxlength="160"
+                    :maxlength="limits.title"
                     required
                     :aria-invalid="Boolean(fieldError('title'))"
                     :aria-describedby="fieldError('title') ? 'task-title-error' : undefined"
@@ -61,12 +109,15 @@ function submit() {
             </div>
 
             <div class="field">
-                <label for="task-description">Description</label>
+                <div class="field-label">
+                    <label for="task-description">Description</label>
+                    <span>{{ form.description.length }}/{{ limits.description }}</span>
+                </div>
                 <textarea
                     id="task-description"
                     v-model="form.description"
                     rows="4"
-                    maxlength="2000"
+                    :maxlength="limits.description"
                     :aria-invalid="Boolean(fieldError('description'))"
                 />
                 <p v-if="fieldError('description')" class="field-error">{{ fieldError('description') }}</p>
@@ -85,7 +136,14 @@ function submit() {
 
                 <div class="field">
                     <label for="task-due">Due date</label>
-                    <input id="task-due" v-model="form.due_date" type="date" :aria-invalid="Boolean(fieldError('due_date'))">
+                    <input
+                        id="task-due"
+                        v-model="form.due_date"
+                        type="date"
+                        :min="limits.dueMin"
+                        :max="limits.dueMax"
+                        :aria-invalid="Boolean(fieldError('due_date'))"
+                    >
                     <p v-if="fieldError('due_date')" class="field-error">{{ fieldError('due_date') }}</p>
                 </div>
             </div>

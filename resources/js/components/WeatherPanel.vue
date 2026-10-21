@@ -1,7 +1,8 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import client from '../api/client';
 import { weekday } from '../utils/dates';
+import { limits } from '../utils/limits';
 
 function storedCity() {
     try {
@@ -11,7 +12,14 @@ function storedCity() {
     }
 }
 
-const draft = ref(storedCity());
+const draft = ref(storedCity().slice(0, limits.city));
+
+watch(draft, (value) => {
+    if (value.length > limits.city) {
+        draft.value = value.slice(0, limits.city);
+    }
+});
+
 const report = ref(null);
 const loading = ref(false);
 const error = ref('');
@@ -41,7 +49,8 @@ function range(day) {
 }
 
 async function load() {
-    const city = draft.value.trim();
+    const city = draft.value.trim().slice(0, limits.city);
+    draft.value = city;
 
     if (!city) {
         error.value = 'Enter a city name.';
@@ -81,9 +90,12 @@ onMounted(load);
 
         <form class="stack" @submit.prevent="load">
             <div class="field">
-                <label for="weather-city">City</label>
+                <div class="field-label">
+                    <label for="weather-city">City</label>
+                    <span>{{ draft.length }}/{{ limits.city }}</span>
+                </div>
                 <div class="inline">
-                    <input id="weather-city" v-model="draft" type="text" maxlength="80" autocomplete="off" placeholder="London">
+                    <input id="weather-city" v-model="draft" type="text" :maxlength="limits.city" autocomplete="off" placeholder="London">
                     <button class="btn btn-primary" type="submit" :disabled="loading">
                         {{ loading ? 'Looking up…' : 'Update' }}
                     </button>

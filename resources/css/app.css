@@ -348,6 +348,28 @@ textarea {
     margin-top: 0.3rem;
     color: var(--muted);
     white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.task-body p.is-clamped {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+}
+
+.read-more {
+    margin-top: 0.35rem;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--copper);
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.read-more:hover {
+    text-decoration: underline;
 }
 
 .meta {

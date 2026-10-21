@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { dueLabel, isOverdue, shortStamp } from '../utils/dates';
 
 const props = defineProps({
@@ -10,12 +10,45 @@ const props = defineProps({
 const emit = defineEmits(['toggle', 'edit', 'remove']);
 
 const confirming = ref(false);
+const expanded = ref(false);
+const canToggle = ref(false);
+const copyEl = ref(null);
 const overdue = computed(() => isOverdue(props.task));
+const description = computed(() => props.task.description?.trim() ?? '');
+
+async function measure() {
+    canToggle.value = false;
+    await nextTick();
+
+    const el = copyEl.value;
+
+    if (!el) {
+        return;
+    }
+
+    const lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 24;
+    const overflows = el.scrollHeight > lineHeight * 3 + 1;
+    canToggle.value = overflows;
+
+    if (!overflows) {
+        expanded.value = false;
+    }
+}
+
+function toggleDescription() {
+    expanded.value = !expanded.value;
+}
 
 function remove() {
     confirming.value = false;
     emit('remove', props.task);
 }
+
+onMounted(measure);
+watch(description, () => {
+    expanded.value = false;
+    measure();
+});
 </script>
 
 <template>
@@ -35,7 +68,16 @@ function remove() {
 
         <div class="task-body">
             <h3>{{ task.title }}</h3>
-            <p v-if="task.description">{{ task.description }}</p>
+            <p v-if="description" ref="copyEl" :class="{ 'is-clamped': canToggle && !expanded }">{{ task.description }}</p>
+            <button
+                v-if="canToggle"
+                type="button"
+                class="read-more"
+                :aria-expanded="expanded"
+                @click="toggleDescription"
+            >
+                {{ expanded ? 'Show less' : 'Read more' }}
+            </button>
             <div class="meta">
                 <span class="pill" :data-priority="task.priority">{{ task.priority }}</span>
                 <span v-if="task.due_date" :class="{ overdue: overdue }">{{ dueLabel(task.due_date) }}</span>

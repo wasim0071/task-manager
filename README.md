@@ -4,7 +4,7 @@ IQT-FSD-2026
 
 A full stack task board built for the Full Stack Developer assessment. Laravel exposes a versioned REST API, Vue 3 renders the board, and MySQL stores the tasks. A weather panel calls the public Open-Meteo API through the backend.
 
-Live demo: run it locally at http://127.0.0.1:8000 (no public host is attached to this project).
+Live demo: https://taskmanager.citydeels.com/
 
 ## Stack
 
@@ -187,6 +187,6 @@ tests/Feature              API tests
 ## Submission checklist
 
 - GitHub repository: push this project and use that URL
-- Live demo: http://127.0.0.1:8000 after the setup above
+- Live demo: https://taskmanager.citydeels.com/
 - Setup instructions, schema, API integration, and architecture answers: this file
 - Screenshot: `docs/open-meteo-integration.png`
